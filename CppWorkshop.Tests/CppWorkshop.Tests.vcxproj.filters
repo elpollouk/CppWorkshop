@@ -19,6 +19,9 @@
     <ClCompile Include="Examples\Pointers\E01_Basics.cpp">
       <Filter>Examples\Pointers</Filter>
     </ClCompile>
+    <ClCompile Include="Examples\Pointers\E02_RawMemoryManagement.cpp">
+      <Filter>Examples\Pointers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

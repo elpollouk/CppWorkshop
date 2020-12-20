@@ -15,6 +15,12 @@ namespace Pointers
 	public:
 		TEST_METHOD(Raw_Pointers)
 		{
+			/*
+			 * Recap:
+			 *		&var = Address of operator, returns the address of a variable to store in a pointer.
+			 *      *var = De-refence the pointer stored in var so that the original value can be read or modified.
+			 */
+
 			// A pointer is just a variable that holds the memory address of something else (e.g. a variable or other object).
 			int number = 123;
 			int* pNumber = &number;
@@ -24,7 +30,7 @@ namespace Pointers
 			number = 456;
 			Assert::AreEqual(number, *pNumber, L"Updating number should also been seen by pNumber");
 
-			// You can update the original value via the pointer.
+			// You can update the original value via the pointer by de-referencing it.
 			*pNumber = 789;
 			Assert::AreEqual(number, *pNumber, L"Number should be updatable via pNumber");
 
@@ -72,7 +78,7 @@ namespace Pointers
 
 			// When not using pointers, complete structures are copied via the stack.
 			// Potentially a complete copy of the structure is pushed onto the stack to make the function call and then
-			// another copy pushed onto the stack for the result value.
+			// another copy pushed onto the stack for the return value.
 			Vec2 vecOriginal = { 3, 5 };
 			auto vecCopy = SwapWithCopy(vecOriginal);
 			AssertAreNotSame(&vecOriginal, &vecCopy, L"vecOriginal should have been copied to a new structure");
@@ -160,6 +166,63 @@ namespace Pointers
 			// Try changing "_countof(numbers)" to "_countof(pNumbers)"...
 		}
 
+		TEST_METHOD(Void_Star)
+		{
+			// You can assign a pointer of any type to a void* pointer.
+			int number = 13;
+			void* pNumberVoidStar = &number;
+
+			// You can compare void* pointers with any other pointer.
+			int* pNumber = &number;
+			Assert::IsTrue(pNumberVoidStar == pNumber, L"Both pointer should point to the same location");
+
+			// However, you need to cast it to a pointer of a specific type in order to use it to read or modify a value.
+			Assert::AreEqual(13, *(int*)pNumberVoidStar, L"pNumberVoidStar should retrieve that value from number");
+
+			// You also can't perform pointer arithmetic on a void* pointer without casting it to a specific type.
+			// Generally, they're used when you want an opaque pointer, e.g. hiding context implementation types for
+			// stateful APIs or where the API doesn't care about the type of data stored at the address pointed to, e.g.
+			// raw IO or raw memory operations.
+
+			//--------------------------------------------------------------------------------------------//
+			// Example memory copier that can copy any data type.
+			// (Please don't do this yourself, the standard library already has a memcpy() function.)
+			//--------------------------------------------------------------------------------------------//
+			auto copy = [](const void* src, void* dst, size_t size) {
+				auto pSrc = (const uint8_t*)src;
+				auto pDst = (uint8_t*)dst;
+				while (size--)
+					*(pDst++) = *(pSrc++);
+			};
+
+			// We can now copy data between arbitary arrays.
+			int source[] = { 3, 5, 7, 11 };
+			int target[_countof(source)];
+
+			copy(source, target, sizeof(source));
+
+			Assert::AreEqual(3, target[0], L"Index 0 should match source data");
+			Assert::AreEqual(5, target[1], L"Index 1 should match source data");
+			Assert::AreEqual(7, target[2], L"Index 2 should match source data");
+			Assert::AreEqual(11, target[3], L"Index 3 should match source data");
+			
+			// Raw values can also be copied.
+			double doubleNumber1 = 12345.6789;
+			double doubleNumber2 = 0;
+
+			copy(&doubleNumber1, &doubleNumber2, sizeof(double));
+
+			Assert::AreEqual(12345.6789, doubleNumber2, L"doubleNumber2's value should have been copied from doubleNumber1");
+
+			// However, it does have risks if you're not careful what you're copying to where.
+			float floatNumber = -1.0;
+			uint32_t uintNumber = 0;
+
+			copy(&floatNumber, &uintNumber, sizeof(uintNumber));
+
+			Assert::AreEqual(0xBF800000, uintNumber, L"Raw floating point binary representation should have been copied into uintNumber");
+		}
+
 		TEST_METHOD(C_Strings)
 		{
 			// Pointers can point to memory statically allocated by the compiler, e.g. string literals.
@@ -173,6 +236,17 @@ namespace Pointers
 				count++;
 
 			Assert::AreEqual(strlen(pMessage), count, L"Our count should match the value return by the standard library strlen() function");
+		}
+
+		TEST_METHOD(Pointers_To_Pointers)
+		{
+			// It's possible to have pointers, to pointers, to pointers...
+			int number = 101;
+			int* pNumber = &number;
+			int** ppNumber = &pNumber;
+			int*** pppNumber = &ppNumber;
+
+			Assert::AreEqual(101, ***pppNumber, L"The original value should be accessible viad the pointer chain");
 		}
 	};
 }
