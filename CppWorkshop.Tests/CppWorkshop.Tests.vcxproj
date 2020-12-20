@@ -22,7 +22,6 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{7BC1A5BE-8C3C-4682-85BF-BD22B3B33400}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>Pointers</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectSubType>NativeUnitTestProject</ProjectSubType>
   </PropertyGroup>
