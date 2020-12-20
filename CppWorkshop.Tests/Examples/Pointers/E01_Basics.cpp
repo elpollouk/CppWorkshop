@@ -172,7 +172,7 @@ namespace Pointers
 			while (*pReader++)
 				count++;
 
-			Assert::AreEqual(strlen(pMessage), count, L"Out count should match the value return by the standard library strlen() function");
+			Assert::AreEqual(strlen(pMessage), count, L"Our count should match the value return by the standard library strlen() function");
 		}
 	};
 }
