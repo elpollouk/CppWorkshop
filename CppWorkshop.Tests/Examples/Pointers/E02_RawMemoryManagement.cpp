@@ -263,7 +263,18 @@ namespace Pointers
             // The alloca/_alloca function can be used to directly allocate memory on the stack
             // rather than the heap.
             int count = 5;
-            int* pNumbers = (int*)alloca(sizeof(int) * count);
+            int* pNumbers;
+            try
+            {
+                pNumbers = (int*)alloca(sizeof(int) * count);
+            }
+            catch (...)
+            {
+                // As alloca() is deemed risky enough that MSVC has a specific warning make sure
+                // you wrap any calls to it in a try catch block.
+                // https://docs.microsoft.com/en-us/cpp/code-quality/c6255?view=msvc-160
+                Assert::Fail(L"alloca() failed to allocate space on the stack");
+            }
 
             // Once allocated, assuming your process is still running, you can use the memory as
             // normal.
@@ -282,7 +293,7 @@ namespace Pointers
 
         TEST_METHOD(Dynamic_Stack_Allocations_Improved)
         {
-            // If you really want to allocate memory on the stack, Windows CRT provides _malloca.
+            // If you really want to allocate memory on the stack, the MSVC CRT provides _malloca.
             // It will attempt to allocate on the stack. But if the size requested is greater than
             // _ALLOCA_S_THRESHOLD, then the allocation is made from the heap instead.
             int count = 5;

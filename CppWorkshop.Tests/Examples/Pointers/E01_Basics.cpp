@@ -5,7 +5,7 @@
  * code boundaries, e.g. JNI or DLL interfaces.
  * 
  * Recap:
- *		&var = Address of operator, returns the address of a variable to store in a pointer.
+ *	    &var = Address of operator, returns the address of a variable to store in a pointer.
  *      *var = De-refence the pointer stored in var so that the original value can be read or
  *             modified.
  */
@@ -144,7 +144,7 @@ namespace Pointers
 
             // However, you can't assign nullptr or NULL to a reference directly, so don't use them
             // for values that could be nullish.
-            // One a reference is bound to a variable, it can not be changed to reference a
+            // Once a reference is bound to a variable, it can not be changed to reference a
             // different variable even if the original variable reaches the end of its life time.
         }
 
