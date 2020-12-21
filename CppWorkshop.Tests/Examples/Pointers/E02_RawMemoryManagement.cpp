@@ -87,6 +87,8 @@ namespace Pointers
 			// are probably for large IO tasks which can take time before they access all the memory they've requested.
 			// The unfortunate side effect is that your program may initially run fine for a little bit and then suddnely crash
 			// when the OS is unable to fulfil the promise of memory it made at a later point.
+
+			// I have no idea what Mac OS does.
 		}
 
 		TEST_METHOD(New_Dete_Primitives)
