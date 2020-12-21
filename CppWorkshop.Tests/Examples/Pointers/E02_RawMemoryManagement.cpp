@@ -101,7 +101,7 @@ namespace Pointers
             // I have no idea what Mac OS does.
         }
 
-        TEST_METHOD(New_Dete_Primitives)
+        TEST_METHOD(New_Delete_Primitives)
         {
             // This is just included for completeness, but I've not yet seen a good reason for
             // doing this.
@@ -149,7 +149,7 @@ namespace Pointers
             // Enter a new temporary variable scope.
             {
                 // If no pointer or allocation method is used, then object instances are allocated
-                // on the heap within the current scope.
+                // on the stack within the current scope.
                 Vector2 vec;
                 Assert::AreEqual(1, InstanceCount, L"New vector instance should have been created");
 
@@ -177,7 +177,7 @@ namespace Pointers
             Assert::AreEqual(0, InstanceCount, L"vec's destructor should have been called when it went out of scope");
         }
 
-        TEST_METHOD(New_Object_Instance)
+        TEST_METHOD(New_Delete_Object_Instance)
         {
             // new is used to allocate objects on the heap and call their constructors.
             Vector2* pVec = new Vector2();
@@ -194,7 +194,7 @@ namespace Pointers
             Assert::AreEqual(0, InstanceCount, L"pVec's destructor should have been called");
         }
 
-        TEST_METHOD(New_Object_Array)
+        TEST_METHOD(New_Delete_Object_Array)
         {
             // If the objects have a default constructor, you can directly create an array of
             // objects on the heap using new[].
@@ -280,10 +280,10 @@ namespace Pointers
             // result in future stack corruption if the invalid pointer is manipulated.
         }
 
-        TEST_METHOD(Slightly_Better_Dynamic_Stack_Allocations)
+        TEST_METHOD(Dynamic_Stack_Allocations_Improved)
         {
             // If you really want to allocate memory on the stack, Windows CRT provides _malloca.
-            // It will attempt to allocate on the stack. But if the size requested is greated than
+            // It will attempt to allocate on the stack. But if the size requested is greater than
             // _ALLOCA_S_THRESHOLD, then the allocation is made from the heap instead.
             int count = 5;
             int* pNumbers = (int*)_malloca(sizeof(int) * count);
@@ -294,7 +294,7 @@ namespace Pointers
             int total = sum(pNumbers, count);
             Assert::AreEqual(15, total, L"Array values should sum up correctly");
 
-            // As the memory could have come from the heap, you do need to explicitly free them
+            // As the memory could have come from the heap, you do need to explicitly free the
             // memory before you leave the current stack frame.
             _freea(pNumbers);
         }
