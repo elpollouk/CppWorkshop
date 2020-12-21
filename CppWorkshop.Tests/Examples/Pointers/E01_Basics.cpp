@@ -285,7 +285,7 @@ namespace Pointers
             int** ppNumber = &pNumber;
             int*** pppNumber = &ppNumber;
 
-            Assert::AreEqual(101, ***pppNumber, L"The original value should be accessible viad the pointer chain");
+            Assert::AreEqual(101, ***pppNumber, L"The original value should be accessible via the pointer chain");
         }
     };
 }
