@@ -1,2 +1,2 @@
 # CppWorkshop
-C++ Workshop Exercises 
+C++ Workshop Examples 
