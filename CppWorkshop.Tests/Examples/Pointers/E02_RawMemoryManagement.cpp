@@ -7,8 +7,9 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-// When allocating array, there is an addition overhead to track how many elements are in the array
-// in oredr to be able to call the destructors on every object in the array.
+// When allocating arrays, there is an additional overhead to track how many elements are in the
+// array in order to be able to call the destructors on every object in the array when we delete
+// it.
 // The size of this header is compiler dependent and is usually hidden from the user.
 constexpr auto NEW_ARRAY_OVERHEAD = sizeof(uint64_t);
 
@@ -280,9 +281,9 @@ namespace Pointers
         TEST_METHOD(Operator_New_Delete_Overload)
         {
             // It's possible to overload the new and delete operators on a per class basis.
-            // Here, tracked vector uses a tracking allocator so that it is possible to track the
+            // Here, TrackedVector2 uses a tracking allocator so that it is possible to track the
             // number and size of allocations for TrackedVector2 objects.
-            // The new operaote uses the overload defined on the TrackedVector2 class.
+            // The new operator uses the overload defined on the TrackedVector2 class.
             auto pVector = new TrackedVector2();
             Assert::AreEqual(1u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
             Assert::AreEqual(sizeof(TrackedVector2) + sizeof(uint64_t), TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
@@ -290,17 +291,20 @@ namespace Pointers
             // When deleting the object, the memory is freed via the delete operator defined on the
             // class.
             delete pVector;
-            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
-            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
+            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
 
             // It is important to make sure you define both a new and delete operator when using
             // custom allocators, otherwise you could find the compiler trying to use the default
             // allocator leading to heap corruption or memory leaks.
+
+            // Try changing the overload in TrackingVector2 to:
+            // void* operator new(size_t size) = delete;
         }
 
         TEST_METHOD(Operator_New_Delete_Overload_Arrays)
         {
-            // In order to allocate array via a custom allocator, the new[] and delete[] operators
+            // In order to allocate arrays via a custom allocator, the new[] and delete[] operators
             // must also be overloaded.
             // When tracking these allocations, we can see the size of the array tracking overhead.
             const int count = 3;
@@ -310,7 +314,7 @@ namespace Pointers
                 (sizeof(TrackedVector2) * count) +  // Size of the objects
                 sizeof(uint64_t) +                  // Size of our tracking header
                 NEW_ARRAY_OVERHEAD,                 // Size of the array tracking information
-                TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+                TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of the vectors plus size of all the tracking info");
 
             // And just to prove that these objects have been constructed as expected...
             Assert::AreEqual(0, pVectors[0].getX());
@@ -323,8 +327,8 @@ namespace Pointers
             // As with other array allocations, you must use delete[] and have overloaded delete[]
             // in order to route the request back to our custom allocator.
             delete[] pVectors;
-            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
-            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
+            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
         }
 
         TEST_METHOD(Dynamic_Stack_Allocations)
@@ -401,6 +405,10 @@ namespace Pointers
         }
     };
 
+
+    //-------------------------------------------------------------------------------------------//
+    // Statics
+    //-------------------------------------------------------------------------------------------//
     int E02_RawMemoryManagement::Vector2::InstanceCount = 0;
     TrackingAllocator<> E02_RawMemoryManagement::TrackedVector2::s_Allocator = TrackingAllocator<>();
 }
