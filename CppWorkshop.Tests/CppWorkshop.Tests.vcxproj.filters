@@ -11,6 +11,9 @@
     <Filter Include="Examples\Pointers">
       <UniqueIdentifier>{48bef26b-6f5e-4c5f-8fbc-659c02309f3f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Allocators">
+      <UniqueIdentifier>{beaed8df-f23e-4819-80a6-3f031a03366e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -26,6 +29,9 @@
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Allocators\TrackingAllocator.h">
+      <Filter>Source Files\Allocators</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

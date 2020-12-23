@@ -3,8 +3,14 @@
  * C++11 introduced wrappers for pointers that provided better life cycle management.
  */
 #include "pch.h"
+#include "Allocators/TrackingAllocator.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+
+// When allocating array, there is an addition overhead to track how many elements are in the array
+// in oredr to be able to call the destructors on every object in the array.
+// The size of this header is compiler dependent and is usually hidden from the user.
+constexpr auto NEW_ARRAY_OVERHEAD = sizeof(uint64_t);
 
 namespace Pointers
 {
@@ -13,13 +19,15 @@ namespace Pointers
         class Vector2
         {
         public:
+            static int InstanceCount;
+
             Vector2(int x, int y) :
                 _x(x),
                 _y(y)
             {
                 // This is a simple way for us to check the number of instances in tests, but it's
                 // not thread safe, so don't do it in production!
-                E02_RawMemoryManagement::InstanceCount++;
+                InstanceCount++;
             }
 
             // Default constructor.
@@ -27,7 +35,7 @@ namespace Pointers
 
             virtual ~Vector2()
             {
-                E02_RawMemoryManagement::InstanceCount--;
+                InstanceCount--;
             }
 
             int getX() const { return _x; }
@@ -50,12 +58,27 @@ namespace Pointers
             int _y;
         };
 
-    public:
-        static int InstanceCount;
+        // A version of Vector2 that uses a custom allocator
+        class TrackedVector2 : public Vector2
+        {
+        public:
+            // Custom allocator we're using just for this class
+            static TrackingAllocator<> s_Allocator;
 
+            TrackedVector2() : Vector2() {}
+            TrackedVector2(int x, int y) : Vector2(x, y) {}
+
+            // Overloads for new/delete that route through to our custom allocator
+            void* operator new(size_t size) { return s_Allocator.allocate(size); }
+            void operator delete(void* pMem) { s_Allocator.deallocate((uint8_t*)pMem); }
+            void* operator new[](size_t size) { return s_Allocator.allocate(size); }
+            void operator delete[](void* pMem) { s_Allocator.deallocate((uint8_t*)pMem); }
+        };
+
+    public:
         TEST_METHOD_INITIALIZE(SetUp)
         {
-            InstanceCount = 0;
+            Vector2::InstanceCount = 0;
         }
 
         TEST_METHOD(Malloc_Free)
@@ -151,7 +174,7 @@ namespace Pointers
                 // If no pointer or allocation method is used, then object instances are allocated
                 // on the stack within the current scope.
                 Vector2 vec;
-                Assert::AreEqual(1, InstanceCount, L"New vector instance should have been created");
+                Assert::AreEqual(1, Vector2::InstanceCount, L"New vector instance should have been created");
 
                 // We access members of the instance using the '.' operator.
                 vec.RotateRight();
@@ -160,7 +183,7 @@ namespace Pointers
 
                 // Even though the object is on the stack, you can still take the address of it.
                 Vector2* pVec = &vec;
-                Assert::AreEqual(1, InstanceCount, L"No additional vector instances should have been created");
+                Assert::AreEqual(1, Vector2::InstanceCount, L"No additional vector instances should have been created");
 
                 // The member de-reference operator is used to interact with object pointers.
                 pVec->RotateRight();
@@ -174,14 +197,14 @@ namespace Pointers
             // fundamental part of C++ resource management, referred to as RAII. You'll see it used
             // frequently from scoped mutex locks to resource wrapper templates to manage memory
             // allocation life times and ownership.
-            Assert::AreEqual(0, InstanceCount, L"vec's destructor should have been called when it went out of scope");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"vec's destructor should have been called when it went out of scope");
         }
 
         TEST_METHOD(New_Delete_Object_Instance)
         {
             // new is used to allocate objects on the heap and call their constructors.
             Vector2* pVec = new Vector2();
-            Assert::AreEqual(1, InstanceCount, L"New vector instance should have been created");
+            Assert::AreEqual(1, Vector2::InstanceCount, L"New vector instance should have been created");
 
             // Methods can be called on the instance by using the member de-reference operator.
             pVec->RotateLeft();
@@ -191,7 +214,7 @@ namespace Pointers
             // When we're done with the object instance, we need to explicitly release its memory
             // by calling delete. The destructor will be called immediately by delete.
             delete pVec;
-            Assert::AreEqual(0, InstanceCount, L"pVec's destructor should have been called");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"pVec's destructor should have been called");
         }
 
         TEST_METHOD(New_Delete_Object_Array)
@@ -201,7 +224,7 @@ namespace Pointers
             // The objects will be allocated consecutively in a single block of memory.
             int count = 5;
             Vector2* pVecArray = new Vector2[count];
-            Assert::AreEqual(count, InstanceCount, L"5 instances of Vector2 should have been constructed");
+            Assert::AreEqual(count, Vector2::InstanceCount, L"5 instances of Vector2 should have been constructed");
 
             // You can access the objects via their array index and the '.' operator.
             pVecArray[2].RotateRight();
@@ -213,7 +236,7 @@ namespace Pointers
             // When finished with the array, you must delete it and all the object instance at the
             // same time using delete[].
             delete[] pVecArray;
-            Assert::AreEqual(0, InstanceCount, L"All vector instances should have been destructed");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"All vector instances should have been destructed");
         }
 
         TEST_METHOD(Placement_New)
@@ -227,9 +250,9 @@ namespace Pointers
             // pools, you can easily track each systems' memory usage and potentially avoid memory
             // fragmentation between systems.
             void* pMem = malloc(sizeof(Vector2));
-            Assert::AreEqual(0, InstanceCount, L"No instances should have been constructed");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"No instances should have been constructed");
             Vector2* pVec = new(pMem) Vector2();
-            Assert::AreEqual(1, InstanceCount, L"A new Vector2 instance should have been constructed");
+            Assert::AreEqual(1, Vector2::InstanceCount, L"A new Vector2 instance should have been constructed");
 
             // The pointer returned will point to the same address as the initial memory allocation
             // as that's where the object was constructed.
@@ -243,7 +266,7 @@ namespace Pointers
             // When you want to release the object instance, you must manually call the object's
             // destructor.
             pVec->~Vector2();
-            Assert::AreEqual(0, InstanceCount, L"pVec's destructor should have been called");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"pVec's destructor should have been called");
             // And then you must release the memory via the appropriate allocator function.
             free(pMem);
 
@@ -252,6 +275,56 @@ namespace Pointers
             // away if it's truely not needed (via link time code generation) and it will save you
             // from resource leak bugs where another engineer has made the assumption that the
             // destructor will be called to release an asset such as a texture or model.
+        }
+
+        TEST_METHOD(Operator_New_Delete_Overload)
+        {
+            // It's possible to overload the new and delete operators on a per class basis.
+            // Here, tracked vector uses a tracking allocator so that it is possible to track the
+            // number and size of allocations for TrackedVector2 objects.
+            // The new operaote uses the overload defined on the TrackedVector2 class.
+            auto pVector = new TrackedVector2();
+            Assert::AreEqual(1u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
+            Assert::AreEqual(sizeof(TrackedVector2) + sizeof(uint64_t), TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+
+            // When deleting the object, the memory is freed via the delete operator defined on the
+            // class.
+            delete pVector;
+            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
+            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+
+            // It is important to make sure you define both a new and delete operator when using
+            // custom allocators, otherwise you could find the compiler trying to use the default
+            // allocator leading to heap corruption or memory leaks.
+        }
+
+        TEST_METHOD(Operator_New_Delete_Overload_Arrays)
+        {
+            // In order to allocate array via a custom allocator, the new[] and delete[] operators
+            // must also be overloaded.
+            // When tracking these allocations, we can see the size of the array tracking overhead.
+            const int count = 3;
+            auto pVectors = new TrackedVector2[count];
+            Assert::AreEqual(1u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
+            Assert::AreEqual(
+                (sizeof(TrackedVector2) * count) +  // Size of the objects
+                sizeof(uint64_t) +                  // Size of our tracking header
+                NEW_ARRAY_OVERHEAD,                 // Size of the array tracking information
+                TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+
+            // And just to prove that these objects have been constructed as expected...
+            Assert::AreEqual(0, pVectors[0].getX());
+            Assert::AreEqual(1, pVectors[0].getY());
+            Assert::AreEqual(0, pVectors[1].getX());
+            Assert::AreEqual(1, pVectors[1].getY());
+            Assert::AreEqual(0, pVectors[2].getX());
+            Assert::AreEqual(1, pVectors[2].getY());
+
+            // As with other array allocations, you must use delete[] and have overloaded delete[]
+            // in order to route the request back to our custom allocator.
+            delete[] pVectors;
+            Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
+            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
         }
 
         TEST_METHOD(Dynamic_Stack_Allocations)
@@ -328,5 +401,6 @@ namespace Pointers
         }
     };
 
-    int E02_RawMemoryManagement::InstanceCount = 0;
+    int E02_RawMemoryManagement::Vector2::InstanceCount = 0;
+    TrackingAllocator<> E02_RawMemoryManagement::TrackedVector2::s_Allocator = TrackingAllocator<>();
 }
