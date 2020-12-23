@@ -11,7 +11,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // array in order to be able to call the destructors on every object in the array when we delete
 // it.
 // The size of this header is compiler dependent and is usually hidden from the user.
-constexpr auto NEW_ARRAY_OVERHEAD = sizeof(uint64_t);
+constexpr auto NEW_ARRAY_OVERHEAD = sizeof(size_t);
 
 namespace Pointers
 {
@@ -293,7 +293,7 @@ namespace Pointers
             // class.
             delete pVector;
             Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
-            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
+            Assert::AreEqual((size_t)0, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
             Assert::AreEqual(0, Vector2::InstanceCount, L"All instances of Vector2 should have been destructed");
 
             // It is important to make sure you define both a new and delete operator when using
@@ -332,7 +332,7 @@ namespace Pointers
             // in order to route the request back to our custom allocator.
             delete[] pVectors;
             Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
-            Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
+            Assert::AreEqual((size_t)0, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
             Assert::AreEqual(0, Vector2::InstanceCount, L"All instances of Vector2 should have been destructed");
 
         }

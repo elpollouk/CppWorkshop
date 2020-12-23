@@ -28,7 +28,7 @@ template<typename T> inline void AssertAreNotSame(const T* a, const T* b, const 
 template<typename T> inline void AssertArrayEqual(const std::vector<T> expected, const T* actual, size_t size, const wchar_t* message = nullptr)
 {
 	Microsoft::VisualStudio::CppUnitTestFramework::Assert::AreEqual(expected.size(), size, message);
-	for (auto i = 0; i < size; i++)
+	for (size_t i = 0; i < size; i++)
 		Microsoft::VisualStudio::CppUnitTestFramework::Assert::AreEqual(expected[i], actual[i], message);
 }
 

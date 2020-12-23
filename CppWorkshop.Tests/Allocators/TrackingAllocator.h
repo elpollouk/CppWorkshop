@@ -43,7 +43,7 @@ public:
 		uint64_t* header = reinterpret_cast<uint64_t*>(pMem);
 		header--;
 		// Update our tracking info and free the memory.
-		_totalAllocationsSize -= *header;
+		_totalAllocationsSize -= (size_t)*header;
 		_numAllocations--;
 		free(header);
 	}
