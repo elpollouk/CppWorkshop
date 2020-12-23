@@ -287,12 +287,14 @@ namespace Pointers
             auto pVector = new TrackedVector2();
             Assert::AreEqual(1u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been made via our custom allocator");
             Assert::AreEqual(sizeof(TrackedVector2) + sizeof(uint64_t), TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of vector plus size of tracking header");
+            Assert::AreEqual(1, Vector2::InstanceCount, L"An instance of Vector2 should have been constructed");
 
             // When deleting the object, the memory is freed via the delete operator defined on the
             // class.
             delete pVector;
             Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
             Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"All instances of Vector2 should have been destructed");
 
             // It is important to make sure you define both a new and delete operator when using
             // custom allocators, otherwise you could find the compiler trying to use the default
@@ -315,6 +317,8 @@ namespace Pointers
                 sizeof(uint64_t) +                  // Size of our tracking header
                 NEW_ARRAY_OVERHEAD,                 // Size of the array tracking information
                 TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should be size of the vectors plus size of all the tracking info");
+            Assert::AreEqual(count, Vector2::InstanceCount, L"Three instances of Vector2 should have been constructed");
+
 
             // And just to prove that these objects have been constructed as expected...
             Assert::AreEqual(0, pVectors[0].getX());
@@ -329,6 +333,8 @@ namespace Pointers
             delete[] pVectors;
             Assert::AreEqual(0u, TrackedVector2::s_Allocator.getNumAllocations(), L"Allocation should have been released via our custom allocator");
             Assert::AreEqual(0ull, TrackedVector2::s_Allocator.getTotalAllocationsSize(), L"Allocation size should have been reduced");
+            Assert::AreEqual(0, Vector2::InstanceCount, L"All instances of Vector2 should have been destructed");
+
         }
 
         TEST_METHOD(Dynamic_Stack_Allocations)
