@@ -1,5 +1,5 @@
 /*
- * std::unique_ptr was introduced in C++11 as a way to manage an allocations life cycle via
+ * std::unique_ptr was introduced in C++11 as a way to manage an allocation's life cycle via
  * explicit unique ownership. Only a single "entity" can hold a handle on the allocated
  * object. Ownership can be transferred, but as soon as the handle is set to null or goes out of
  * scope, the memory is released as there are no explicit owners and the object would be
@@ -10,8 +10,8 @@
  * 
  * It is worth noting that unique_ptrs can only really be used within the code of a linked module,
  * i.e. an exe, dll or so. It is not safe to attempt to expose external APIs on a dll or so that
- * use unique_ptrs as the templated code is usually inlined and is highly dependent on the compiler
- * version. A unique_ptr passed from an LLVM compiler module to a Visual Studio compiler module is
+ * use unique_ptrs as the templated code is inlined and is highly dependent on the compiler
+ * version. A unique_ptr passed from an LLVM compiled module to a Visual Studio compiled module is
  * highly likely to go bang. On Windows, you have the extra concern that dlls and exes have
  * independent heaps and so memory must be freed by the module that allocated it.
  */
@@ -45,7 +45,8 @@ namespace Pointers
 
         TEST_METHOD(Make_Unique_Constructor_Parameters)
         {
-            // make_unique is a variadic template function and so can accept any constructo params.
+            // make_unique is a variadic template function and so can accept any constructor
+            // paramters.
             std::unique_ptr<Vector2> pVec = std::make_unique<Vector2>(-2, 3);
 
             Assert::IsFalse(pVec == nullptr, L"pVec should not be null");
@@ -55,8 +56,7 @@ namespace Pointers
 
         TEST_METHOD(Scope_Based_Life_Cycle)
         {
-            // A unique_ptr will delete its wrapped object if it goes out of scope if ownership
-            // hasn't been transerferred to another unique_ptr.
+            // A unique_ptr will delete its wrapped object if it goes out of scope.
             {
                 std::unique_ptr<Vector2> pVec = std::make_unique<Vector2>();
 
@@ -140,7 +140,7 @@ namespace Pointers
         {
             // Again, legacy or external APIs might require being passed a reference. Fortunately,
             // it's also possible to get a reference from a unique_ptr using the same syntax for
-            // a regular pointer.
+            // dereferencing a regular pointer.
             auto rotate = [](Vector2& vec) {
                 vec.RotateLeft();
             };
@@ -156,13 +156,13 @@ namespace Pointers
         {
             // Like everything in the STL, it's possible to use custom allocators and deleters.
             auto create = []() {
-                // A typedef for the deleter function to simplify the declaration.
+                // A typedef for the delete function to simplify the declaration.
                 typedef void(*Vector2_Delete)(Vector2*);
                 // We allocate the memory required for a Vector2 via our custom allocator.
                 auto pRaw = E03_UniquePtr::pAllocator->allocate(sizeof(Vector2));
                 // Placement new is used to construct the Vector2.
                 auto pVecRaw = new(pRaw) Vector2(2, 3);
-                // We then prove the pointer to a new unique_ptr explicitly. We also provide a
+                // We then provide the pointer to a new unique_ptr explicitly. We also provide a
                 // custom delete function.
                 std::unique_ptr<Vector2, Vector2_Delete> pVec(pVecRaw, [](Vector2* pMem) {
                     // As we have taken responsibility of constructing the object, we are also
@@ -173,7 +173,7 @@ namespace Pointers
                 return pVec;
             };
 
-            // As the type now is actually std::unique_ptr<Vector2, Vector2_Delete>, using "auto"
+            // As the type is actually std::unique_ptr<Vector2, Vector2_Delete>, using "auto"
             // allows us to simplify the declaration.
             auto pVec = create();
 
@@ -195,14 +195,31 @@ namespace Pointers
             // issue, but it is something you should be aware of.
         }
 
+        TEST_METHOD(Custom_Allocate_Delete_On_Class)
+        {
+            // If it's critical, you can avoid the overhead of tracking the delete functor if the
+            // object you're trying to construct has overridden the now and delete operator.
+            // As new/delete is used under the hood for the default cases, the compiler will route
+            // them through to your custom allocator at no extra cost.
+            std::unique_ptr<TrackedVector2> pVec = std::make_unique<TrackedVector2>();
+
+            Assert::AreEqual(1, (int)TrackedVector2::s_Allocator.getNumAllocations(), L"TrackedVector2 should have been allocated via our custom allocator");
+
+            // Releasing the memory will also be routed to the custom allocator without any
+            // explicit set up.
+            pVec = nullptr;
+
+            Assert::AreEqual(0, (int)TrackedVector2::s_Allocator.getNumAllocations(), L"TrackedVector2 should have been released via our custom allocator");
+        }
+
         //---------------------------------------------------------------------------------------//
         // Test Setup
         //---------------------------------------------------------------------------------------//
-        static std::unique_ptr<TrackingAllocator<uint8_t>> pAllocator;
+        static std::unique_ptr<TrackingAllocator<>> pAllocator;
 
         TEST_METHOD_INITIALIZE(SetUp)
         {
-            pAllocator = std::make_unique<TrackingAllocator<uint8_t>>();
+            pAllocator = std::make_unique<TrackingAllocator<>>();
             Vector2::InstanceCount = 0;
         }
     };
@@ -210,5 +227,5 @@ namespace Pointers
     //-------------------------------------------------------------------------------------------//
     // Statics
     //-------------------------------------------------------------------------------------------//
-    std::unique_ptr<TrackingAllocator<uint8_t>> E03_UniquePtr::pAllocator;
+    std::unique_ptr<TrackingAllocator<>> E03_UniquePtr::pAllocator;
 }
