@@ -159,7 +159,7 @@ namespace Pointers
                 // A typedef for the delete function to simplify the declaration.
                 typedef void(*Vector2_Delete)(Vector2*);
                 // We allocate the memory required for a Vector2 via our custom allocator.
-                auto pRaw = E03_UniquePtr::pAllocator->allocate(sizeof(Vector2));
+                auto pRaw = E03_UniquePtr::s_pAllocator->allocate(sizeof(Vector2));
                 // Placement new is used to construct the Vector2.
                 auto pVecRaw = new(pRaw) Vector2(2, 3);
                 // We then provide the pointer to a new unique_ptr explicitly. We also provide a
@@ -168,7 +168,7 @@ namespace Pointers
                     // As we have taken responsibility of constructing the object, we are also
                     // responsible for destructing it and releasing the memory.
                     pMem->~Vector2();
-                    E03_UniquePtr::pAllocator->deallocate((uint8_t*)pMem);
+                    E03_UniquePtr::s_pAllocator->deallocate((uint8_t*)pMem);
                 });
                 return pVec;
             };
@@ -178,7 +178,7 @@ namespace Pointers
             auto pVec = create();
 
             Assert::AreEqual(1, Vector2::InstanceCount, L"Only a single Vector2 instance should have been allocated");
-            Assert::AreEqual(1, (int)pAllocator->getNumAllocations(), L"Only one request to the custom allocator should have been made");
+            Assert::AreEqual(1, (int)s_pAllocator->getNumAllocations(), L"Only one request to the custom allocator should have been made");
             Assert::AreEqual(2, pVec->getX());
             Assert::AreEqual(3, pVec->getY());
 
@@ -187,7 +187,7 @@ namespace Pointers
             pVec = nullptr;
 
             Assert::AreEqual(0, Vector2::InstanceCount, L"Vector2 instance should have been destructed");
-            Assert::AreEqual(0, (int)pAllocator->getNumAllocations(), L"Vector2 memory should have been released");
+            Assert::AreEqual(0, (int)s_pAllocator->getNumAllocations(), L"Vector2 memory should have been released");
 
             // One thing to be aware of when using custom allocators in this way is that the
             // unique_ptr is also holding onto a pointer for the custom delete function and so must
@@ -215,11 +215,11 @@ namespace Pointers
         //---------------------------------------------------------------------------------------//
         // Test Setup
         //---------------------------------------------------------------------------------------//
-        static std::unique_ptr<TrackingAllocator<>> pAllocator;
+        static std::unique_ptr<TrackingAllocator<>> s_pAllocator;
 
         TEST_METHOD_INITIALIZE(SetUp)
         {
-            pAllocator = std::make_unique<TrackingAllocator<>>();
+            s_pAllocator = std::make_unique<TrackingAllocator<>>();
             Vector2::InstanceCount = 0;
         }
     };
@@ -227,5 +227,5 @@ namespace Pointers
     //-------------------------------------------------------------------------------------------//
     // Statics
     //-------------------------------------------------------------------------------------------//
-    std::unique_ptr<TrackingAllocator<>> E03_UniquePtr::pAllocator;
+    std::unique_ptr<TrackingAllocator<>> E03_UniquePtr::s_pAllocator;
 }
