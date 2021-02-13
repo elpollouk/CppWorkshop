@@ -213,6 +213,59 @@ namespace Pointers
         }
 
         //---------------------------------------------------------------------------------------//
+        // Memory Leak Example
+        //---------------------------------------------------------------------------------------//
+
+        class LinkedListNode
+        {
+        public:
+            static int InstanceCount;
+            std::unique_ptr<LinkedListNode> Next;
+
+            LinkedListNode()
+            {
+                InstanceCount++;
+            }
+
+            ~LinkedListNode()
+            {
+                InstanceCount--;
+            }
+        };
+
+        TEST_METHOD(Circular_Reference_Leak)
+        {
+            // It requires specific setting up, but it's possible to create a circular reference
+            // with unique_ptr which will lead to a memory leak as the graph will likely be fully
+            // isolated from the rest of the applicate state.
+            // This is a important difference between a managed runtime with a garbage collector
+            // and C++'s memory model.
+
+            // With a correctly formed linked list, nulling the "head" pointer will automatically
+            // release all the nodes as they go out of scope.
+            auto first = std::make_unique<LinkedListNode>();
+            first->Next = std::make_unique<LinkedListNode>();
+            first->Next->Next = std::make_unique<LinkedListNode>();
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Wrong number of nodes created for directed linked list");
+
+            first = nullptr;
+            Assert::AreEqual(0, LinkedListNode::InstanceCount, L"Linked list nodes weren't deallocated");
+
+            // However, if we force the last node to link back to the first node, the head pointer
+            // will cease to point to any of the nodes but the nodes are technically still live as
+            // there will be another node pointing to them. None of the nodes are reachable and
+            // the memory hasn't been released and so we have created a memory leak.
+            first = std::make_unique<LinkedListNode>();
+            first->Next = std::make_unique<LinkedListNode>();
+            first->Next->Next = std::make_unique<LinkedListNode>();
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Wrong number of nodes created for directed linked list");
+
+            first->Next->Next->Next = std::move(first);
+            Assert::IsNull(first.get(), L"Local node pointer should have become null");
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Node count should have remained the same after creating a circular reference");
+        }
+
+        //---------------------------------------------------------------------------------------//
         // Test Setup
         //---------------------------------------------------------------------------------------//
         static std::unique_ptr<TrackingAllocator<>> s_pAllocator;
@@ -221,6 +274,7 @@ namespace Pointers
         {
             s_pAllocator = std::make_unique<TrackingAllocator<>>();
             Vector2::InstanceCount = 0;
+            LinkedListNode::InstanceCount = 0;
         }
     };
 
@@ -228,4 +282,5 @@ namespace Pointers
     // Statics
     //-------------------------------------------------------------------------------------------//
     std::unique_ptr<TrackingAllocator<>> E03_UniquePtr::s_pAllocator;
+    int E03_UniquePtr::LinkedListNode::InstanceCount;
 }
