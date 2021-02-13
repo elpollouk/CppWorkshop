@@ -8,13 +8,12 @@
  * maintained for each allocation.
  * 
  * An instance of a shared_ptr has the same API as a unique_ptr and can be used in the same way
- * but are not compatible types. You can't pass a shared_ptr to an API expecting a unique_ptr
- * and vice versa.
+ * but are not compatible types. You can't pass a shared_ptr to an API expecting a unique_ptr.
  *
  * It is worth noting that shared_ptrs can only really be used within the code of a linked module,
  * i.e. an exe, dll or so. It is not safe to attempt to expose external APIs on a dll or so that
- * use unique_ptrs as the templated code is inlined and is highly dependent on the compiler
- * version. A unique_ptr passed from an LLVM compiled module to a Visual Studio compiled module is
+ * use shared_ptrs as the templated code is inlined and is highly dependent on the compiler
+ * version. A shared_ptr passed from an LLVM compiled module to a Visual Studio compiled module is
  * highly likely to go bang. On Windows, you have the extra concern that dlls and exes have
  * independent heaps and so memory must be freed by the module that allocated it.
  */
@@ -34,7 +33,7 @@ namespace Pointers
             // shared_ptr. The default allocator will be used.
             std::shared_ptr<Vector2> pVec = std::make_shared<Vector2>();
 
-            // You can compare the unique_ptr with nullptr as if it were a regular pointer.
+            // You can compare the shared_ptr with nullptr as if it were a regular pointer.
             Assert::IsFalse(pVec == nullptr, L"pVec should not be null");
             // Access to the object is via the "->" operator and so it operates as if to were a
             // regular pointer.
@@ -144,6 +143,56 @@ namespace Pointers
             Assert::AreEqual(0, (int)s_pAllocator->getNumAllocations(), L"Vector2 memory should have been released");
         }
 
+        //---------------------------------------------------------------------------------------//
+        // Memory Leak Example
+        //---------------------------------------------------------------------------------------//
+
+        class LinkedListNode
+        {
+        public:
+            static int InstanceCount;
+            std::shared_ptr<LinkedListNode> Next;
+
+            LinkedListNode()
+            {
+                InstanceCount++;
+            }
+
+            ~LinkedListNode()
+            {
+                InstanceCount--;
+            }
+        };
+
+        TEST_METHOD(Circular_Reference_Leak)
+        {
+            // It's much easier to create a circular reference with shared_ptr as there as there is
+            // no requiredment to use std::move().
+
+            // With a correctly formed linked list, nulling the "head" pointer will automatically
+            // release all the nodes as they go out of scope.
+            auto first = std::make_shared<LinkedListNode>();
+            first->Next = std::make_shared<LinkedListNode>();
+            first->Next->Next = std::make_shared<LinkedListNode>();
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Wrong number of nodes created for directed linked list");
+
+            first = nullptr;
+            Assert::AreEqual(0, LinkedListNode::InstanceCount, L"Linked list nodes weren't deallocated");
+
+            // However, if we make the last node to link back to the first node and clear the head
+            // pointer, the nodes are technically still live as there will be another node pointing
+            // to them. None of the nodes are reachable and the memory hasn't been released and so
+            // we have created a memory leak.
+            first = std::make_shared<LinkedListNode>();
+            first->Next = std::make_shared<LinkedListNode>();
+            first->Next->Next = std::make_shared<LinkedListNode>();
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Wrong number of nodes created for directed linked list");
+ 
+            first->Next->Next->Next = first;
+            first = nullptr;
+            Assert::AreEqual(3, LinkedListNode::InstanceCount, L"Node count should have remained the same after creating a circular reference");
+        }
+
 
         //---------------------------------------------------------------------------------------//
         // Test Setup
@@ -154,6 +203,7 @@ namespace Pointers
         {
             s_pAllocator = std::make_unique<TrackingAllocator<>>();
             Vector2::InstanceCount = 0;
+            LinkedListNode::InstanceCount = 0;
         }
     };
 
@@ -161,4 +211,5 @@ namespace Pointers
     // Statics
     //-------------------------------------------------------------------------------------------//
     std::unique_ptr<TrackingAllocator<>> E04_SharedPtr::s_pAllocator;
+    int E04_SharedPtr::LinkedListNode::InstanceCount;
 }
