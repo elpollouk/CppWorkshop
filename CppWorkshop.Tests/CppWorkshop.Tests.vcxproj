@@ -166,6 +166,7 @@
     <ClCompile Include="Examples\Pointers\E01_Basics.cpp" />
     <ClCompile Include="Examples\Pointers\E02_RawMemoryManagement.cpp" />
     <ClCompile Include="Examples\Pointers\E03_unique_ptr.cpp" />
+    <ClCompile Include="Examples\Pointers\E04_shared_ptr.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
