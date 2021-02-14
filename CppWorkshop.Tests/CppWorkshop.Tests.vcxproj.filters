@@ -34,6 +34,9 @@
     <ClCompile Include="Examples\Pointers\E04_shared_ptr.cpp">
       <Filter>Examples\Pointers</Filter>
     </ClCompile>
+    <ClCompile Include="Examples\Pointers\E05_PoolAllocatorExample.cpp">
+      <Filter>Examples\Pointers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -44,6 +47,9 @@
     </ClInclude>
     <ClInclude Include="Vector2.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Allocators\PoolAllocator.h">
+      <Filter>Source Files\Allocators</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

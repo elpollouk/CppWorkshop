@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <functional>
 #include <string>
 #include <vector>
 #include "CppUnitTest.h"
@@ -31,6 +32,23 @@ template<typename T> inline void AssertArrayEqual(const std::vector<T> expected,
 	Microsoft::VisualStudio::CppUnitTestFramework::Assert::AreEqual(expected.size(), size, message);
 	for (size_t i = 0; i < size; i++)
 		Microsoft::VisualStudio::CppUnitTestFramework::Assert::AreEqual(expected[i], actual[i], message);
+}
+
+template<class expected_exception> inline void AssertThrows(std::function<void()> func, const wchar_t* message = nullptr)
+{
+	try
+	{
+		func();
+		Microsoft::VisualStudio::CppUnitTestFramework::Assert::Fail(message ? message : L"No exception thrown");
+	}
+	catch (expected_exception ex)
+	{
+
+	}
+	catch (...)
+	{
+		Microsoft::VisualStudio::CppUnitTestFramework::Assert::Fail(L"Unexpected exception thrown");
+	}
 }
 
 #endif //PCH_H
