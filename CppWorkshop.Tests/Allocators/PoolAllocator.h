@@ -46,6 +46,20 @@ public:
 		_allocation_count--;
 	}
 
+	template <class... _Types>
+	std::shared_ptr<type> make_shared(_Types&&... _Args)
+	{
+		type* pItem = construct(_Args...);
+		return std::shared_ptr<type>(pItem, [this](type* pItem) { destruct(pItem); });
+	}
+
+	template <class... _Types>
+	std::unique_ptr<type, std::function<void(type*)>> make_unique(_Types&&... _Args)
+	{
+		type* pItem = construct(_Args...);
+		return std::unique_ptr<type, std::function<void(type*)>>(pItem, [this](type* pItem) { destruct(pItem); });
+	}
+
 private:
 	struct PoolEntry
 	{

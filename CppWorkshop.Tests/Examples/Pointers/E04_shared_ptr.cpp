@@ -42,7 +42,7 @@ namespace Pointers
 
             // In most cases, shared_ptr functions syntactically the same as a normal C++ raw
             // pointer. However, its life cycle can be tracked and validated to guard against the
-            // most common forms of pointer misuse of leaks.
+            // most common forms of pointer misuse or leaks.
         }
 
         TEST_METHOD(Make_Shared_Constructor_Parameters)
@@ -58,7 +58,7 @@ namespace Pointers
 
         TEST_METHOD(Multiple_References)
         {
-            // Multiple shared_ptr instances can point to a single allocatioin.
+            // Multiple shared_ptr instances can point to a single allocation.
             std::shared_ptr<Vector2> pVec1 = std::make_shared<Vector2>();
             Assert::AreEqual(1, Vector2::InstanceCount, L"A single instance of Vector2 should have been allocated");
 
@@ -102,6 +102,41 @@ namespace Pointers
             // When designing an API, factory functions should return unique_ptrs. This is so that
             // the caller can decide the life-cycle semantics they wish to use. If you return a
             // shared_ptr, then the caller is forced to use reference counting.
+        }
+
+        TEST_METHOD(I_Really_Want_To_Create_A_UniquePtr)
+        {
+            // Ok, as with most things in C++, you can brute force it. But the world will hate you.
+            // Don't do this. Please.
+            std::shared_ptr<Vector2> pShared = std::make_shared<Vector2>(3, 5);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only a single instance of Vector2 should exist");
+
+            // Now for something completely hideous...
+            auto pUnique = std::unique_ptr<Vector2, std::function<void(Vector2*)>>(pShared.get(), [pShared](Vector2*) mutable {
+                pShared = nullptr;
+            });
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only a single instance of Vector2 should exist");
+            // The original shared_ptr is still valid.
+            Assert::AreEqual(3, pShared->getX());
+            Assert::AreEqual(5, pShared->getY());
+
+            // What we did is take the raw pointer from the shared_ptr and wrapped it in a new
+            // unique_ptr. In order to keep the allocation alive even after the original shared_ptr
+            // has been nulled or gone out of scope, we also capture a copy of the shared pointer
+            // in our delete lambda. However, captures are const by default, so we've had to
+            // explicitly mark the lambda as mutable so that we can assign null to our shared_ptr
+            // copy when the unique_ptr is released.
+            // Finally, because we're using a lambda with a capture, we can no longer use a simple
+            // function pointer type, we have to use the std::function template to encapsulate the
+            // delete function.
+
+            pShared = nullptr;
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only a single instance of Vector2 should exist");
+            Assert::AreEqual(3, pUnique->getX());
+            Assert::AreEqual(5, pUnique->getY());
+
+            pUnique = nullptr;
+            Assert::AreEqual(0, Vector2::InstanceCount, L"No instances of Vector2 should exist");
         }
 
         TEST_METHOD(Custom_Allocate_Delete)
@@ -181,8 +216,8 @@ namespace Pointers
 
             // However, if we make the last node to link back to the first node and clear the head
             // pointer, the nodes are technically still live as there will be another node pointing
-            // to them. None of the nodes are reachable and the memory hasn't been released and so
-            // we have created a memory leak.
+            // to each them. None of the nodes are reachable and the memory hasn't been released
+            // and so we have created a memory leak.
             first = std::make_shared<LinkedListNode>();
             first->Next = std::make_shared<LinkedListNode>();
             first->Next->Next = std::make_shared<LinkedListNode>();

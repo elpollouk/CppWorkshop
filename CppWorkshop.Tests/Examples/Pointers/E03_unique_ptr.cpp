@@ -40,7 +40,7 @@ namespace Pointers
 
             // In most cases, unique_ptr functions syntactically the same as a normal C++ raw
             // pointer. However, its life cycle can be tracked and validated to guard against the
-            // most common forms of pointer misuse of leaks.
+            // most common forms of pointer misuse or leaks.
         }
 
         TEST_METHOD(Make_Unique_Constructor_Parameters)
@@ -74,7 +74,7 @@ namespace Pointers
             Assert::IsFalse(pVec == nullptr, L"pVec should not be null");
             Assert::AreEqual(1, Vector2::InstanceCount, L"An instance should have been allocated");
 
-            // You can explicitly delete the wrapped object by simply allocating nullptr to a
+            // You can explicitly delete the wrapped object by simply assigning nullptr to a
             // unique_ptr. This will invoke the wrapped object's destructor and release the memory. 
             pVec = nullptr;
 
@@ -116,6 +116,24 @@ namespace Pointers
 
             Assert::AreEqual(1, Vector2::InstanceCount, L"Only a single Vector2 instance should have been allocated");
             Assert::IsFalse(pVec == nullptr, L"pVec should not be null");
+            Assert::AreEqual(-1, pVec->getX());
+            Assert::AreEqual(0, pVec->getY());
+        }
+
+        TEST_METHOD(Passing_To_A_Function)
+        {
+            // Although only a single unique_ptr can exist for an allocation, you can still pass
+            // the unique_ptr by reference so that it can be consumed by another API.
+            auto update = [](std::unique_ptr<Vector2>& pValue)
+            {
+                pValue->RotateLeft();
+            };
+
+            std::unique_ptr<Vector2> pVec = std::make_unique<Vector2>();
+            Assert::AreEqual(0, pVec->getX());
+            Assert::AreEqual(1, pVec->getY());
+
+            update(pVec);
             Assert::AreEqual(-1, pVec->getX());
             Assert::AreEqual(0, pVec->getY());
         }
@@ -209,7 +227,7 @@ namespace Pointers
         TEST_METHOD(Custom_Allocate_Delete_On_Class)
         {
             // If it's critical, you can avoid the overhead of tracking the delete functor if the
-            // object you're trying to construct has overridden the now and delete operator.
+            // object you're trying to construct has overridden the new and delete operators.
             // As new/delete is used under the hood for the default cases, the compiler will route
             // them through to your custom allocator at no extra cost.
             std::unique_ptr<TrackedVector2> pVec = std::make_unique<TrackedVector2>();
@@ -263,9 +281,9 @@ namespace Pointers
             Assert::AreEqual(0, LinkedListNode::InstanceCount, L"Linked list nodes weren't deallocated");
 
             // However, if we force the last node to link back to the first node, the head pointer
-            // will cease to point to any of the nodes but the nodes are technically still live as
-            // there will be another node pointing to them. None of the nodes are reachable and
-            // the memory hasn't been released and so we have created a memory leak.
+            // will cease to point to any of the nodes but each node is technically still live as
+            // there will be another node pointing to it. None of the nodes are reachable and the
+            // memory hasn't been released and so we have created a memory leak.
             first = std::make_unique<LinkedListNode>();
             first->Next = std::make_unique<LinkedListNode>();
             first->Next->Next = std::make_unique<LinkedListNode>();

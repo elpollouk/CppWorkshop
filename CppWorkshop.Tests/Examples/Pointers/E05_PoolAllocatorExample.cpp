@@ -77,7 +77,7 @@ namespace Pointers
                 pool.destruct(t1);
             }, L"It should not be possible to double destruct element from pool");
 
-            // Now an item has been returned to the pool, we a construct another new item again.
+            // Now an item has been returned to the pool, we can construct another new item again.
             t1 = pool.construct();
             Assert::AreEqual(0, t1->check(), L"Default constructor wasn't invoked correctly");
             Assert::AreEqual(0u, pool.getFreeCount());
@@ -94,6 +94,28 @@ namespace Pointers
             pool.destruct(t1);
             pool.destruct(t2);
             pool.destruct(t3);
+            Assert::AreEqual(3u, pool.getFreeCount());
+            Assert::AreEqual(0u, pool.getAllocCount());
+
+            // We can provide a simple API for creating shared_ptrs from the pool.
+            {
+                std::shared_ptr<Tank> pShared = pool.make_shared(-3, -5, -7);
+                Assert::AreEqual(-15, pShared->check());
+                Assert::AreEqual(2u, pool.getFreeCount());
+                Assert::AreEqual(1u, pool.getAllocCount());
+            }
+            // When the shared_ptr goes out of scope, the allocation is released.
+            Assert::AreEqual(3u, pool.getFreeCount());
+            Assert::AreEqual(0u, pool.getAllocCount());
+
+            // We can also provide an API for creating unique_ptrs from the pool.
+            {
+                auto pShared = pool.make_unique(3, 5, 7);
+                Assert::AreEqual(15, pShared->check());
+                Assert::AreEqual(2u, pool.getFreeCount());
+                Assert::AreEqual(1u, pool.getAllocCount());
+            }
+            // When the unique_ptr goes out of scope, the allocation is released.
             Assert::AreEqual(3u, pool.getFreeCount());
             Assert::AreEqual(0u, pool.getAllocCount());
         }
