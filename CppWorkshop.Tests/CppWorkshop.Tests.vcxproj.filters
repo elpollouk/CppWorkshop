@@ -14,6 +14,9 @@
     <Filter Include="Source Files\Allocators">
       <UniqueIdentifier>{beaed8df-f23e-4819-80a6-3f031a03366e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Wrappers">
+      <UniqueIdentifier>{bf2a8978-acaa-4510-9df9-055349aa64af}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -37,6 +40,9 @@
     <ClCompile Include="Examples\Pointers\E05_PoolAllocatorExample.cpp">
       <Filter>Examples\Pointers</Filter>
     </ClCompile>
+    <ClCompile Include="Examples\Pointers\E06_ComInterfaces.cpp">
+      <Filter>Examples\Pointers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -50,6 +56,9 @@
     </ClInclude>
     <ClInclude Include="Allocators\PoolAllocator.h">
       <Filter>Source Files\Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="Wrappers\com_ptr.h">
+      <Filter>Source Files\Wrappers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
