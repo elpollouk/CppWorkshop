@@ -172,7 +172,7 @@ namespace Pointers
 
         TEST_METHOD(Bool_Operator)
         {
-            // shared_ptr provides an overridden bool operator so that pointer checks can be
+            // unique_ptr provides an overridden bool operator so that pointer checks can be
             // performed using the same semantics as raw pointers.
             std::unique_ptr<Vector2> pVec = std::make_unique<Vector2>(5, 7);
             if (!pVec) Assert::Fail(L"Pointer should have been set");
