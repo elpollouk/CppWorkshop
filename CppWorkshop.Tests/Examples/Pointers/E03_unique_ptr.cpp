@@ -241,6 +241,76 @@ namespace Pointers
             Assert::AreEqual(0, (int)TrackedVector2::s_Allocator.getNumAllocations(), L"TrackedVector2 should have been released via our custom allocator");
         }
 
+
+        //---------------------------------------------------------------------------------------//
+        // Example derived class to demo up casting
+        //---------------------------------------------------------------------------------------//
+        class Vector3 : public Vector2
+        {
+        public:
+            Vector3(int x, int y, int z) :
+                Vector2(x, y),
+                _z(z)
+            {
+
+            }
+
+            Vector3() :
+                _z(0)
+            {
+
+            }
+
+            int getZ() const { return _z; }
+
+        private:
+            int _z;
+        };
+
+        TEST_METHOD(Upcast_To_Base_Pointer_Type)
+        {
+            // It's possible to up cast from a derived class to a base class if you have control
+            // over both references.
+            std::unique_ptr<Vector3> pVec3 = std::make_unique<Vector3>(5, 7, 11);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(5, pVec3->getX());
+            Assert::AreEqual(7, pVec3->getY());
+            Assert::AreEqual(11, pVec3->getZ());
+
+            // Here, the life cycle is managed explicitly and we move the reference into the up
+            // cast type, transferring owenership along with it.
+            std::unique_ptr<Vector2> pVec2 = std::move(pVec3);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(5, pVec2->getX());
+            Assert::AreEqual(7, pVec2->getY());
+
+            // We can also construct directly into a pointer of the base class type.
+            std::unique_ptr<Vector2> pAutoUpCastVec = std::make_unique<Vector3>(13, 17, 19);
+            Assert::AreEqual(2, Vector2::InstanceCount, L"Two vector instances should currently exist");
+            Assert::AreEqual(13, pAutoUpCastVec->getX());
+            Assert::AreEqual(17, pAutoUpCastVec->getY());
+
+            // Unfortunately, doing anything more than that generally requires lots of template
+            // wrangling to get working. For example, you can't pass a derived class to a function
+            // expecting the base class, even if it is by reference as they types are incompatible
+            // at the template level. You'd need to construct a new unique_ptr with the correct
+            // type in order to pass it, but this would move ownership out of the original wrapper.
+            // After the call, you'd need to move the ownership back to the original wrapper which
+            // would require down casting.
+
+            // Down casting is even more problematic as the templates are incompatible and
+            // constructing an new unique_ptr of the correct type will also require moving the
+            // deletor reference as well. However, declaring an explicit deletor fundamentally
+            // changes the type again meaning it will still be incompatible with the original
+            // pointer.
+
+            // The best approach if you need to pass around unique_ptr references is to only use
+            // the base type and explicitly down cast the wrapped pointer if needed, e.g.:
+            int z = static_cast<Vector3*>(pVec2.get())->getZ();
+            Assert::AreEqual(11, z);
+        }
+
+
         //---------------------------------------------------------------------------------------//
         // Memory Leak Example
         //---------------------------------------------------------------------------------------//
