@@ -266,7 +266,7 @@ namespace Pointers
 
             // Unfortunately, doing anything more than that generally requires lots of template
             // wrangling to get working. For example, you can't pass a derived class to a function
-            // expecting the base class, even if it is by reference as they types are incompatible
+            // expecting the base class, even if it is by reference as the types are incompatible
             // at the template level. You'd need to construct a new unique_ptr with the correct
             // type in order to pass it, but this would move ownership out of the original wrapper.
             // After the call, you'd need to move the ownership back to the original wrapper which
@@ -276,7 +276,7 @@ namespace Pointers
             // constructing an new unique_ptr of the correct type will also require moving the
             // deletor reference as well. However, declaring an explicit deletor fundamentally
             // changes the type again meaning it will still be incompatible with the original
-            // pointer.
+            // wrapper type.
 
             // The best approach if you need to pass around unique_ptr references is to only use
             // the base type and explicitly down cast the wrapped pointer if needed, e.g.:
