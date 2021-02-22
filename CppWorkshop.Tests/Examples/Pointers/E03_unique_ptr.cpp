@@ -241,32 +241,6 @@ namespace Pointers
             Assert::AreEqual(0, (int)TrackedVector2::s_Allocator.getNumAllocations(), L"TrackedVector2 should have been released via our custom allocator");
         }
 
-
-        //---------------------------------------------------------------------------------------//
-        // Example derived class to demo up casting
-        //---------------------------------------------------------------------------------------//
-        class Vector3 : public Vector2
-        {
-        public:
-            Vector3(int x, int y, int z) :
-                Vector2(x, y),
-                _z(z)
-            {
-
-            }
-
-            Vector3() :
-                _z(0)
-            {
-
-            }
-
-            int getZ() const { return _z; }
-
-        private:
-            int _z;
-        };
-
         TEST_METHOD(Upcast_To_Base_Pointer_Type)
         {
             // It's possible to up cast from a derived class to a base class if you have control

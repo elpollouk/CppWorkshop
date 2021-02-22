@@ -60,3 +60,30 @@ public:
     void* operator new[](size_t size) { return s_Allocator.allocate(size); }
     void operator delete[](void* pMem) { s_Allocator.deallocate((uint8_t*)pMem); }
 };
+
+
+//---------------------------------------------------------------------------------------//
+// Example derived class to demo up casting
+// Please don't implement a Vector3 using inheritance.
+//---------------------------------------------------------------------------------------//
+class Vector3 : public Vector2
+{
+public:
+    Vector3(int x, int y, int z) :
+        Vector2(x, y),
+        _z(z)
+    {
+
+    }
+
+    Vector3() :
+        _z(0)
+    {
+
+    }
+
+    int getZ() const { return _z; }
+
+private:
+    int _z;
+};

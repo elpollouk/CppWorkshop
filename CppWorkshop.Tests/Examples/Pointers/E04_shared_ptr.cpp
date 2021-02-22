@@ -178,6 +178,99 @@ namespace Pointers
             Assert::AreEqual(0, (int)s_pAllocator->getNumAllocations(), L"Vector2 memory should have been released");
         }
 
+        TEST_METHOD(Upcast_To_Base_Pointer_Type)
+        {
+            // Up casting is much simpler with shared pointers as there are implicit conversions
+            // when creating new shared_ptr wrappers for the base pointer type.
+            std::shared_ptr<Vector3> pVec3 = std::make_shared<Vector3>(5, 7, 11);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(5, pVec3->getX());
+            Assert::AreEqual(7, pVec3->getY());
+            Assert::AreEqual(11, pVec3->getZ());
+
+            // You can directly assign a derived type wrapper to a base type wraper. Both
+            // shared_ptr instances will keep the original allocation alive.
+            std::shared_ptr<Vector2> pVec2 = pVec3;
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(5, pVec2->getX());
+            Assert::AreEqual(7, pVec2->getY());
+
+            // We can also construct directly into a wrapper of the base class type.
+            std::shared_ptr<Vector2> pAutoUpCastVec = std::make_shared<Vector3>(13, 17, 19);
+            Assert::AreEqual(2, Vector2::InstanceCount, L"Two vector instances should currently exist");
+            Assert::AreEqual(13, pAutoUpCastVec->getX());
+            Assert::AreEqual(17, pAutoUpCastVec->getY());
+
+            // As all wrappers keep the original allocation alive, we can release derived type
+            // wrappers safely.
+            pVec3 = nullptr;
+            pAutoUpCastVec = nullptr;
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only the pVec2 instance should exist");
+            Assert::AreEqual(5, pVec2->getX());
+            Assert::AreEqual(7, pVec2->getY());
+
+            pVec2 = nullptr;
+            Assert::AreEqual(0, Vector2::InstanceCount, L"All instances should have been released");
+        }
+
+        TEST_METHOD(Downcast_To_Derived_Pointer_Type)
+        {
+            // As all shared_ptr wrappers already have memory management data associated with them
+            // to support reference counting, it allows for much greater flexibility when casting
+            // them. Helpers are provided to explicitly support various casts which allow us to
+            // down cast when needed. These construct a new wrapper, copying across the management
+            // data.
+            std::shared_ptr<Vector2> pVec2 = std::make_shared<Vector3>(13, 17, 19);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(13, pVec2->getX());
+            Assert::AreEqual(17, pVec2->getY());
+
+            // Here I'm using the static_pointer_cast helper, but there's also dynamic, const and
+            // reinterpret helpers as well.
+            std::shared_ptr<Vector3> pVec3 = std::static_pointer_cast<Vector3>(pVec2);
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only single vector should have been created");
+            Assert::AreEqual(13, pVec3->getX());
+            Assert::AreEqual(17, pVec3->getY());
+            Assert::AreEqual(19, pVec3->getZ());
+
+            // Life cycle management still functions as expected even through the two wrappers are
+            // of different types.
+            pVec2 = nullptr;
+            Assert::AreEqual(1, Vector2::InstanceCount, L"Only the pVec2 instance should exist");
+            pVec3 = nullptr;
+            Assert::AreEqual(0, Vector2::InstanceCount, L"All instances should have been released");
+        }
+
+        TEST_METHOD(Upcast_For_Function_Arg)
+        {
+            // Because of the flexibility of shared_ptr and the implicit conversions that are
+            // possible, you can pass a derived shared_ptr to a function expecting a base
+            // shared_ptr. This will increase the reference count within the wrapper as a new
+            // wrapper instance is created to support this.
+            auto rotate = [](std::shared_ptr<Vector2> pVector)
+            {
+                pVector->RotateRight();
+            };
+
+            std::shared_ptr<Vector3> pVec3 = std::make_shared<Vector3>(0, 1, 0);
+            Assert::AreEqual(0, pVec3->getX());
+            Assert::AreEqual(1, pVec3->getY());
+            Assert::AreEqual(0, pVec3->getZ());
+
+            rotate(pVec3);
+            Assert::AreEqual(1, pVec3->getX());
+            Assert::AreEqual(0, pVec3->getY());
+            Assert::AreEqual(0, pVec3->getZ());
+
+            // However, you can't pass the wrapper by reference and expect it to work. This is
+            // because the templates are still incompatible even though implicit conversions happen
+            // when construction new instances.
+
+            // Try changing the function above to:
+            //     auto rotate = [](std::shared_ptr<Vector2>& pVector)
+        }
+
+
         //---------------------------------------------------------------------------------------//
         // Memory Leak Example
         //---------------------------------------------------------------------------------------//
