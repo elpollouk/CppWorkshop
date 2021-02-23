@@ -148,6 +148,64 @@ namespace Pointers
             // different variable even if the original variable reaches the end of its life time.
         }
 
+        //---------------------------------------------------------------------------------------//
+        // Ok, there are situations where referenced do behave differently to pointers...
+        // Here's a down casting example.
+        //---------------------------------------------------------------------------------------//
+        class Base {
+        public:
+            Base(int value) : baseInt(value) {}
+            virtual ~Base() {} // We need a vtable to make this a polymorphic type
+            int baseInt;
+        };
+
+        class Derived1 : public Base {
+        public:
+            Derived1(int base, int derived) : Base(base), derivedInt(derived) {}
+            int derivedInt;
+        };
+
+        class Derived2 : public Base {
+        public:
+            Derived2(int base, float derived) : Base(base), derivedFloat(derived) {}
+            float derivedFloat;
+        };
+
+        TEST_METHOD(References_Down_Casting_Exception)
+        {
+            // When working with polymorphic types and you have RTTI enabled, dynamic_cast is able
+            // to check if a down cast to a derived type is of the correct type.
+            Base* pBase = new Derived1(1, 2);
+            Derived1* pDerived1 = dynamic_cast<Derived1*>(pBase);
+            Assert::IsNotNull(pDerived1, L"Base pointer should have been dynamically down cast to Derived1");
+            Assert::AreEqual(1, pDerived1->baseInt);
+            Assert::AreEqual(2, pDerived1->derivedInt);
+
+            // If the object pointed to by the base pointer isn't of the correct type, dynamic_cast
+            // will return nullptr.
+            Derived2* pDerived2 = dynamic_cast<Derived2*>(pBase);
+            Assert::IsNull(pDerived2, L"Base pointer should not have been dynamically down cast to Derived2");
+
+            // However, you can also use dynamic_cast on references.
+            auto attempt_down_cast = [](Base& ref) {
+                Derived1& derived = dynamic_cast<Derived1&>(ref);
+                Assert::AreEqual(1, derived.baseInt);
+                Assert::AreEqual(2, derived.derivedInt);
+            };
+
+            attempt_down_cast(*pBase);
+            delete pBase;
+
+            // However, if the object referred to by the base reference isn't of the correct type
+            // for the cast, then a std::bad_cast exception is thrown as it's not really valid for
+            // a reference to be null.
+            pBase = new Derived2(1, 2.0);
+            AssertThrows<std::bad_cast>([=]() {
+                attempt_down_cast(*pBase);
+            });
+            delete pBase;
+        }
+
         TEST_METHOD(References_Null_Check)
         {
             // This is an example of how you could pass a null reference, but don't expect to see
