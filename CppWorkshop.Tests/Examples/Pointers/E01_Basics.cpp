@@ -149,7 +149,7 @@ namespace Pointers
         }
 
         //---------------------------------------------------------------------------------------//
-        // Ok, there are situations where referenced do behave differently to pointers...
+        // Ok, there are situations where references do behave differently to pointers...
         // Here's a down casting example.
         //---------------------------------------------------------------------------------------//
         class Base {
